@@ -1,0 +1,8 @@
+run backend: cd bfar-backend
+	   : node index.js
+
+run Frontend: npm run dev
+
+
+run clean up database monthly: node clean.js
+NOTE TO RUN CLEAN UP YOU MUST CHANGE THE MONTH YOU WHANT TO DELETE.

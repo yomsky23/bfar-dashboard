@@ -1,0 +1,274 @@
+// ==========================================
+// 1. CONFIGURATION
+// ==========================================
+
+// LABEL: This tells Prisma to generate the standard JavaScript/TypeScript client 
+// so you can use 'prisma.tableName' in your Next.js code.
+generator client {
+  provider = "prisma-client-js"
+}
+
+// LABEL: This connects Prisma to your MySQL database using the DATABASE_URL in your .env file.
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL") // Make sure this is in your actual code if it wasn't!
+}
+
+// ==========================================
+// 2. CORE ATTENDANCE & BIOMETRIC DATA
+// ==========================================
+
+// LABEL: The STAGING TABLE. When we pull from CrossChex, data lands here first.
+// It stores raw punches before they are processed into full days.
+model timelogs {
+  uIdn        Int     @id @default(autoincrement())
+  DateLog     String  @db.VarChar(15) // e.g., "2026-03-01"
+  TimeLog     String  @db.VarChar(15) // e.g., "08:00:00"
+  ReaderId    String? @db.VarChar(20)
+  UserId      Int     // The biometric ID of the employee
+  EventId     Int?    @db.SmallInt
+  TimeEventId Int
+
+  // This prevents the exact same punch from being downloaded twice!
+  @@unique([UserId, DateLog, TimeLog])
+}
+
+// LABEL: The MAIN PROCESSED TABLE. Data from 'timelogs' is moved here 
+// and calculated into daily records (AM In, AM Out, PM In, PM Out).
+model tblattendance {
+  dtr_id           Int      @id @default(autoincrement())
+  dtrDate          String   @db.VarChar(20)
+  timeInAM         String   @db.VarChar(20)
+  timeOutAM        String   @db.VarChar(20)
+  timeInPM         String   @db.VarChar(20)
+  timeOutPM        String   @db.VarChar(20)
+  
+  // Overtime and Undertime calculations
+  otHour           Int
+  otMinutes        Int
+  overtime         Float
+  undertime        Float
+  utHour           Int
+  utMinutes        Int
+
+  // Metadata & Tracking
+  biometricsNo_fk  Int?
+  DeviceID         String   @db.VarChar(20)
+  createdBy        String   @db.Text
+  modifiedBy       String   @db.Text
+  dateCreated      DateTime @default(now())
+  dateModified     DateTime @default(now())
+  DateTimeModified DateTime
+
+  @@index([biometricsNo_fk])
+}
+
+// LABEL: Tracks the actual biometric devices (e.g., Anviz devices).
+model devices {
+  id            Int      @id @default(autoincrement())
+  locations     String   @db.VarChar(50)
+  ipAddress     String   @unique @db.VarChar(20)
+  includeDevice Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+}
+
+// ==========================================
+// 3. EMPLOYEE & USER MANAGEMENT
+// ==========================================
+
+// LABEL: Master list of all employees and their biometric/company IDs.
+model tblemployees {
+  id            Int                 @id @default(autoincrement())
+  employeeId    String              @unique(map: "tblEmployees_employeeId_key") @db.VarChar(25)
+  biometricId   Int                 @unique(map: "tblEmployees_biometricId_key")
+  
+  // Personal Info
+  surname       String              @db.VarChar(50)
+  firstname     String              @db.VarChar(50)
+  middlename    String              @db.VarChar(50)
+  extensionname String              @db.VarChar(50)
+  
+  // Organizational Placement
+  positionId    Int
+  stationId     Int?                @default(12)
+  divisionId    Int?
+  sectionId     Int?
+  
+  // Account Status and Roles (Using the Enums at the bottom)
+  status        tblemployees_status @default(ACTIVE)
+  role          tblemployees_role   @default(USER)
+  
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @default(now())
+
+  @@index([divisionId])
+  @@index([positionId])
+  @@index([sectionId])
+  @@index([stationId])
+}
+
+// LABEL: System user accounts (for logging into your Next.js admin dashboard).
+model tblusers {
+  id         Int      @id @default(autoincrement())
+  username   String   @unique @db.VarChar(50)
+  password   String   @db.VarChar(100)
+  status     Boolean  @default(true)
+  employeeId String   @unique @db.VarChar(25)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+}
+
+// ==========================================
+// 4. ORGANIZATION STRUCTURE
+// ==========================================
+
+// LABEL: Divisions within the agency.
+model tbldivisions {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(15)
+  fullname  String   @db.VarChar(150)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+// LABEL: Sections within divisions.
+model tblsections {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(15)
+  fullname   String   @db.VarChar(150)
+  divisionId Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now())
+
+  @@index([divisionId])
+}
+
+// LABEL: Physical stations or branch offices.
+model tblstations {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(15)
+  fullname  String   @db.VarChar(150)
+  address   String   @db.VarChar(250)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+// LABEL: Job titles / positions.
+model tblpositions {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(50)
+  fullname  String   @db.VarChar(150)
+  regular   String   @default("Yes") @db.VarChar(10)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+}
+
+// ==========================================
+// 5. TRAVEL ORDERS & NOTIFICATIONS
+// ==========================================
+
+// LABEL: Manages official travel orders which affect attendance/DTR.
+model tbltravelorders {
+  id            Int                    @id @default(autoincrement())
+  toNo          String                 @db.VarChar(20)
+  employeeId    String                 @db.VarChar(25)
+  departureDate String                 @db.VarChar(20)
+  returnDate    String                 @db.VarChar(20)
+  transpo       String                 @db.LongText
+  objectives    String                 @db.LongText
+  status        tbltravelorders_status @default(PENDING)
+  itinerary     String                 @db.LongText
+  createdById   Int
+  updatedById   Int?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @default(now())
+}
+
+// LABEL: System notifications for requests (like travel orders).
+model tblnotification {
+  id         Int      @id @default(autoincrement())
+  docType    String   @db.VarChar(25)
+  requestID  Int
+  senderID   Int
+  sendDate   DateTime @default(now())
+  receiverID Int
+  seenDate   DateTime @default(now())
+  status     String   @db.VarChar(15)
+}
+
+// ==========================================
+// 6. INVENTORY & PURCHASING (RIS)
+// ==========================================
+
+// LABEL: Catalog of items available for request/purchase.
+model tblitem {
+  id       Int    @id @default(autoincrement())
+  itemCode String
+  itemName String
+}
+
+// LABEL: Record of items purchased by the agency.
+model tblpurchased {
+  id           Int      @id @default(autoincrement())
+  PONo         String   @db.VarChar(20)
+  PODate       String   @db.VarChar(15)
+  invoice      String   @db.VarChar(25)
+  deliveryDate String   @db.VarChar(15)
+  itemId       Int
+  itemUnit     String   @db.VarChar(10)
+  itemQty      Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now())
+}
+
+// LABEL: Requisition and Issue Slip (RIS) Requests.
+model tblrisrequest {
+  id            Int      @id @default(autoincrement())
+  refID         String   @db.VarChar(50)
+  status        String   @default("pending") @db.VarChar(20)
+  requestedByID Int
+  requestDate   DateTime @default(now())
+  updatedById   Int
+  updatedAt     DateTime @default(now())
+  purpose       String   @db.VarChar(250)
+}
+
+// LABEL: Specific items requested within an RIS.
+model tblrisitem {
+  id        Int    @id @default(autoincrement())
+  requestId Int
+  itemID    Int
+  itemUnit  String @db.VarChar(10)
+  itemQty   Int
+}
+
+// LABEL: Classification for item quantities (e.g., box, piece, ream).
+model tblunitclassification {
+  id                 Int    @id @default(autoincrement())
+  unitClassification String
+  quantityPerUnit    Int
+  itemId             Int
+}
+
+// ==========================================
+// 7. ENUMS (Allowed values for specific fields)
+// ==========================================
+
+enum tbltravelorders_status {
+  PENDING
+  APPROVED
+  CANCELLED
+}
+
+enum tblemployees_status {
+  ACTIVE
+  INACTIVE
+}
+
+enum tblemployees_role {
+  ADMINISTRATOR
+  USER
+  HEAD
+  OPERATOR
+}
