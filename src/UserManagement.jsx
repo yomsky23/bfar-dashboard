@@ -5,11 +5,16 @@ import { SearchIcon, Menu } from "lucide-react";
 import useSWR from "swr";
 import EmployeeModal from "./EmployeeModal"; 
 import TableUser from "./TableUser"; 
+// ✅ STEP 1: Imported the pure JavaScript divisions and sections module layout
+import ManageDivisionsSections from "./ManageDivisionsSections";
 
 const fetcher = (url) => fetch(`http://localhost:5000${url}`).then((res) => res.json());
 
 export default function UserManagement() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  
+  // ✅ STEP 2: Main workspace view router tracking state variable
+  const [activeTab, setActiveTab] = useState("employees");
 
   const { isOpen: isAddOpen, onOpen: onAddOpen, onClose: onAddClose, onOpenChange: onAddOpenChange } = useDisclosure();
   const { isOpen: isAccountOpen, onOpen: onAccountOpen, onClose: onAccountClose, onOpenChange: onAccountOpenChange } = useDisclosure();
@@ -78,6 +83,9 @@ export default function UserManagement() {
         return;
       }
 
+      // Safeguard keyword navigation logic so arrow key updates only execute on the employee table tab view matrix layer
+      if (activeTab !== "employees") return;
+
       if (e.key === "ArrowLeft") {
         setPage((prev) => Math.max(prev - 1, 1));
       } else if (e.key === "ArrowRight") {
@@ -87,7 +95,7 @@ export default function UserManagement() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [pages]);
+  }, [pages, activeTab]);
 
   const handleAddNew = () => {
     setBTNCommand("add");
@@ -155,72 +163,143 @@ export default function UserManagement() {
 
   return (
     <div className="flex flex-1 overflow-hidden h-screen w-full bg-[#0d0e12]">
-      {/* SIDEBAR */}
+      
+      {/* SIDEBAR NAVIGATION CONTROLS FRAME */}
       <aside className={`bg-[#14151a] border-r border-[#1f2129] flex flex-col shadow-xl z-10 transition-all duration-300 ease-in-out ${isSidebarCollapsed ? "w-0 opacity-0 overflow-hidden border-none" : "w-64"}`}>
         <div className="flex items-center justify-between p-5 border-b border-[#1f2129] whitespace-nowrap">
           <h2 className="font-bold text-white text-md tracking-wide leading-tight">Employee<br />Management</h2>
           <Menu className="text-gray-400 cursor-pointer hover:text-white transition-colors" size={20} onClick={() => setIsSidebarCollapsed(true)} />
         </div>
         <nav className="flex flex-col p-3 space-y-1 mt-2 whitespace-nowrap">
-          <button className="px-4 py-2.5 text-sm text-left text-white bg-[#222530] rounded shadow-sm font-medium">Employees</button>
-          <button className="px-4 py-2.5 text-sm text-left text-gray-400 hover:text-white hover:bg-[#222530]/50 rounded transition-colors">Division & Sections</button>
-          <button className="px-4 py-2.5 text-sm text-left text-gray-400 hover:text-white hover:bg-[#222530]/50 rounded transition-colors">Stations</button>
+          
+          {/* ✅ TAB 1 CONTROL LINK BUTTON */}
+          <button 
+            type="button"
+            onClick={() => setActiveTab("employees")}
+            className={`px-4 py-2.5 text-sm text-left rounded shadow-sm font-medium transition-all ${
+              activeTab === "employees" 
+                ? "text-white bg-[#222530]" 
+                : "text-gray-400 hover:text-white hover:bg-[#222530]/50"
+            }`}
+          >
+            Employees
+          </button>
+          
+          {/* ✅ TAB 2 CONTROL LINK BUTTON */}
+          <button 
+            type="button"
+            onClick={() => setActiveTab("divisions")}
+            className={`px-4 py-2.5 text-sm text-left rounded font-medium transition-all ${
+              activeTab === "divisions" 
+                ? "text-white bg-[#222530]" 
+                : "text-gray-400 hover:text-white hover:bg-[#222530]/50"
+            }`}
+          >
+            Division & Sections
+          </button>
+          
+          {/* ✅ TAB 3 CONTROL LINK BUTTON */}
+          <button 
+            type="button"
+            onClick={() => setActiveTab("stations")}
+            className={`px-4 py-2.5 text-sm text-left rounded font-medium transition-all ${
+              activeTab === "stations" 
+                ? "text-white bg-[#222530]" 
+                : "text-gray-400 hover:text-white hover:bg-[#222530]/50"
+            }`}
+          >
+            Stations
+          </button>
         </nav>
       </aside>
 
-      {/* MAIN CANVAS */}
+      {/* MAIN CANVAS WORKSPACE VIEWPORT LAYER */}
       <div className="flex-1 p-6 overflow-y-auto w-full flex flex-col gap-4">
-        {/* TOP FILTER BAR */}
-        <div className="flex justify-between items-center bg-[#14161d] px-6 py-3.5 rounded-xl border border-white/5 shadow-xl">
-          <div className="flex items-center gap-4 w-full md:w-2/3">
-            {isSidebarCollapsed && <Menu className="text-gray-400 cursor-pointer hover:text-white transition-colors mr-1 flex-shrink-0" size={20} onClick={() => setIsSidebarCollapsed(false)} />}
-            <span className="text-xs font-bold text-gray-400 tracking-wider">FILTER</span>
-            <div className="w-full max-w-[450px] flex items-center bg-[#202026] hover:bg-[#26262d] rounded-full h-10 px-4 transition-colors">
-              <SearchIcon className="text-gray-400 mr-2.5 flex-shrink-0" size={16} />
-              <input type="text" placeholder="Search Employee..." value={filterValue} onChange={(e) => setFilterValue(e.target.value)} className="w-full bg-transparent text-white text-sm placeholder:text-gray-500 outline-none border-none focus:ring-0 p-0 h-full font-medium" />
-              {filterValue && <button onClick={() => setFilterValue("")} className="text-gray-400 hover:text-white text-xs font-bold pl-1">✕</button>}
+        
+        {/* =========================================================================
+            SUB-VIEW RENDER CHANNEL 1: PRIMARY EMPLOYEE MANAGEMENT REGISTRY TABLES
+            ========================================================================= */}
+        {activeTab === "employees" && (
+          <>
+            {/* TOP FILTER BAR */}
+            <div className="flex justify-between items-center bg-[#14161d] px-6 py-3.5 rounded-xl border border-white/5 shadow-xl animate-in fade-in duration-200">
+              <div className="flex items-center gap-4 w-full md:w-2/3">
+                {isSidebarCollapsed && <Menu className="text-gray-400 cursor-pointer hover:text-white transition-colors mr-1 flex-shrink-0" size={20} onClick={() => setIsSidebarCollapsed(false)} />}
+                <span className="text-xs font-bold text-gray-400 tracking-wider">FILTER</span>
+                <div className="w-full max-w-[450px] flex items-center bg-[#202026] hover:bg-[#26262d] rounded-full h-10 px-4 transition-colors">
+                  <SearchIcon className="text-gray-400 mr-2.5 flex-shrink-0" size={16} />
+                  <input type="text" placeholder="Search Employee..." value={filterValue} onChange={(e) => setFilterValue(e.target.value)} className="w-full bg-transparent text-white text-sm placeholder:text-gray-500 outline-none border-none focus:ring-0 p-0 h-full font-medium" />
+                  {filterValue && <button onClick={() => setFilterValue("")} className="text-gray-400 hover:text-white text-xs font-bold pl-1">✕</button>}
+                </div>
+              </div>
+              <Button onPress={handleAddNew} variant="bordered" radius="full" className="border-1 border-slate-600 text-white hover:bg-white/5 font-semibold text-sm tracking-wide px-6 h-10 rounded-full">New Employee</Button>
             </div>
+
+            {/* DATA CONTAINER TABLE */}
+            <div className="bg-[#14161d] border border-white/5 rounded-xl p-1 shadow-2xl animate-in fade-in duration-200">
+              <TableUser 
+                dataPage={dataPage}
+                isLoading={isLoading}
+                page={page}
+                setPage={setPage}
+                pages={pages}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteClick}
+                onAccount={handleAccountClick}
+              />
+            </div>
+
+            {/* REUSABLE SEPARATED EMPLOYEE FORM MODAL */}
+            <EmployeeModal 
+              isOpen={isAddOpen} 
+              onOpenChange={onAddOpenChange} 
+              onClose={onAddClose}
+              btnCommand={btnCommand} 
+              onSave={onSave}
+              stations={stations} 
+              divisions={divisions} 
+              positions={positions}
+              status={status} setStatus={setStatus}
+              selectedStation={selectedStation} setSelectedStation={setSelectedStation}
+              selectedDivision={selectedDivision} setSelectedDivision={setSelectedDivision}
+              selectedSection={selectedSection} setSelectedSection={setSelectedSection}
+              selectedPosition={selectedPosition} setSelectedPosition={setSelectedPosition}
+              selectedRole={selectedRole} setSelectedRole={setSelectedRole}
+              empID={empID} setEmpID={setEmpID}
+              bioID={bioID} setBioID={setBioID}
+              surname={surname} setSurname={setSurname}
+              firstname={firstname} setFirstname={setFirstname}
+              middlename={middlename} setMiddlename={setMiddlename}
+              extensionname={extensionname} setExtensionname={setExtensionname}
+            />
+          </>
+        )}
+
+        {/* =========================================================================
+            SUB-VIEW RENDER CHANNEL 2: ROUTE TO DIVISIONS & UNIT SECTIONS WORKSPACE
+            ========================================================================= */}
+        {activeTab === "divisions" && (
+          <div className="animate-in fade-in duration-200">
+            {/* Sidebar toggle button helper trigger overlay display if menu context container is hidden */}
+            {isSidebarCollapsed && (
+              <div className="flex items-center gap-2 mb-2 px-2">
+                <Menu className="text-gray-400 cursor-pointer hover:text-white transition-colors" size={20} onClick={() => setIsSidebarCollapsed(false)} />
+                <span className="text-xs font-bold text-gray-500 tracking-wider">SHOW MENU</span>
+              </div>
+            )}
+            <ManageDivisionsSections />
           </div>
-          <Button onPress={handleAddNew} variant="bordered" radius="full" className="border-1 border-slate-600 text-white hover:bg-white/5 font-semibold text-sm tracking-wide px-6 h-10 rounded-full">New Employee</Button>
-        </div>
+        )}
 
-        {/* DATA CONTAINER TABLE */}
-        <div className="bg-[#14161d] border border-white/5 rounded-xl p-1 shadow-2xl">
-          <TableUser 
-            dataPage={dataPage}
-            isLoading={isLoading}
-            page={page}
-            setPage={setPage}
-            pages={pages}
-            onEdit={handleEditClick}
-            onDelete={handleDeleteClick}
-            onAccount={handleAccountClick}
-          />
-        </div>
-
-        {/* REUSABLE SEPARATED EMPLOYEE FORM MODAL */}
-        <EmployeeModal 
-          isOpen={isAddOpen} 
-          onOpenChange={onAddOpenChange} 
-          onClose={onAddClose}
-          btnCommand={btnCommand} 
-          onSave={onSave}
-          stations={stations} 
-          divisions={divisions} 
-          positions={positions}
-          status={status} setStatus={setStatus}
-          selectedStation={selectedStation} setSelectedStation={setSelectedStation}
-          selectedDivision={selectedDivision} setSelectedDivision={setSelectedDivision}
-          selectedSection={selectedSection} setSelectedSection={setSelectedSection}
-          selectedPosition={selectedPosition} setSelectedPosition={setSelectedPosition}
-          selectedRole={selectedRole} setSelectedRole={setSelectedRole}
-          empID={empID} setEmpID={setEmpID}
-          bioID={bioID} setBioID={setBioID}
-          surname={surname} setSurname={setSurname}
-          firstname={firstname} setFirstname={setFirstname}
-          middlename={middlename} setMiddlename={setMiddlename}
-          extensionname={extensionname} setExtensionname={setExtensionname}
-        />
+        {/* =========================================================================
+            SUB-VIEW RENDER CHANNEL 3: STATIONS BACKUP WORKSPACE HOOK CHANNELS
+            ========================================================================= */}
+        {activeTab === "stations" && (
+          <div className="text-center py-20 text-xs text-gray-500 italic bg-[#14161d] border border-white/5 rounded-xl animate-in fade-in duration-200">
+            {isSidebarCollapsed && <Menu className="text-gray-400 cursor-pointer hover:text-white transition-colors m-4" size={20} onClick={() => setIsSidebarCollapsed(false)} />}
+            Base station configuration tables layout coming up next phase.
+          </div>
+        )}
 
       </div>
     </div>
