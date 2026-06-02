@@ -4,7 +4,8 @@ import { Button, useDisclosure } from "@nextui-org/react";
 import { SearchIcon, Menu } from "lucide-react";
 import useSWR from "swr";
 import EmployeeModal from "./EmployeeModal"; 
-import TableUser from "./TableUser"; 
+import TableUser from "./TableUser";
+import ManageStations from "./ManageStations"; 
 // ✅ STEP 1: Imported the pure JavaScript divisions and sections module layout
 import ManageDivisionsSections from "./ManageDivisionsSections";
 
@@ -294,12 +295,16 @@ export default function UserManagement() {
         {/* =========================================================================
             SUB-VIEW RENDER CHANNEL 3: STATIONS BACKUP WORKSPACE HOOK CHANNELS
             ========================================================================= */}
-        {activeTab === "stations" && (
-          <div className="text-center py-20 text-xs text-gray-500 italic bg-[#14161d] border border-white/5 rounded-xl animate-in fade-in duration-200">
-            {isSidebarCollapsed && <Menu className="text-gray-400 cursor-pointer hover:text-white transition-colors m-4" size={20} onClick={() => setIsSidebarCollapsed(false)} />}
-            Base station configuration tables layout coming up next phase.
-          </div>
-        )}
+        {/* STATIONS REFERENCE CONTAINER (OLD PLACEHOLDER CODE REMOVED) */}
+      {activeTab === "stations" && (
+  <div className="flex flex-col gap-4 animate-in fade-in duration-150">
+    {/* ✅ ADDED THIS FORWARDING PORT ROUTE HERE: */}
+    <ManageStations 
+      isSidebarCollapsed={isSidebarCollapsed} 
+      setIsSidebarCollapsed={setIsSidebarCollapsed} 
+    />
+  </div>
+)}
 
       </div>
     </div>

@@ -78,7 +78,8 @@ const ManageDivisionsSections = ({ isSidebarCollapsed, setIsSidebarCollapsed }) 
       if (!sectionCode || !sectionDesc) return
     }
 
-    let endpoint = "/api/divisions"
+    // ✅ FIXED: Targeted absolute backend port 5000 address
+    let endpoint = "http://localhost:5000/api/divisions"
     let method = "POST"
     let bodyPayload = {}
 
@@ -88,10 +89,10 @@ const ManageDivisionsSections = ({ isSidebarCollapsed, setIsSidebarCollapsed }) 
       method = "PUT"
       bodyPayload = { id: ID, name: divisionCode.toUpperCase(), fullname: description }
     } else if (btnCommand === "addSection") {
-      endpoint = "/api/sections"
+      endpoint = "http://localhost:5000/api/sections"
       bodyPayload = { name: sectionCode.toUpperCase(), fullname: sectionDesc, divisionId: ID }
     } else if (btnCommand === "updateSection") {
-      endpoint = "/api/sections"
+      endpoint = "http://localhost:5000/api/sections"
       method = "PUT"
       bodyPayload = { id: sectionID, name: sectionCode.toUpperCase(), fullname: sectionDesc, divisionId: ID }
     }
@@ -117,7 +118,8 @@ const ManageDivisionsSections = ({ isSidebarCollapsed, setIsSidebarCollapsed }) 
   const handleDeleteDivision = async (id) => {
     if (!window.confirm("⚠️ Warning: Deleting this division will break references for assigned units and personnel. Proceed?")) return
     try {
-      const res = await fetch(`/api/divisions/${id}`, { method: "DELETE" })
+      // ✅ FIXED: Targeted absolute backend port 5000 address
+      const res = await fetch(`http://localhost:5000/api/divisions/${id}`, { method: "DELETE" })
       if (res.ok) mutate()
     } catch (err) {
       console.error(err)
@@ -127,7 +129,8 @@ const ManageDivisionsSections = ({ isSidebarCollapsed, setIsSidebarCollapsed }) 
   const handleDeleteSection = async (id) => {
     if (!window.confirm("Are you sure you want to remove this section?")) return
     try {
-      const res = await fetch(`/api/sections/${id}`, { method: "DELETE" })
+      // ✅ FIXED: Targeted absolute backend port 5000 address
+      const res = await fetch(`http://localhost:5000/api/sections/${id}`, { method: "DELETE" })
       if (res.ok) mutate()
     } catch (err) {
       console.error(err)
